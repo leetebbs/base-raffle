@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       client: publicClient
     });
 
-    const raffleCounter = await raffleContract.read.raffleCounter();
+    const raffleCounter = await raffleContract.read.raffleCounter([]);
     const totalRaffles = Number(raffleCounter);
 
     const createdRafflesDetails: any[] = [];
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     for (let i = 0; i < totalRaffles; i++) {
       const raffleInfo = await raffleContract.read.getRaffleInfo([BigInt(i)]) as RaffleInfo;
 
-      if (raffleInfo[2].toLowerCase() === userAddress.toLowerCase()) { // Check owner (index 2 in RaffleInfo tuple)
+      if (raffleInfo && typeof raffleInfo[2] === "string" && raffleInfo[2].toLowerCase() === userAddress.toLowerCase()) {
          const ticketsSold = Number(raffleInfo[7]); // totalTicketsSold is index 7
          const maxTickets = Number(raffleInfo[3]); // ticketCount is index 3
          const raffleState = RaffleStateMapping[raffleInfo[10]]; // state is index 10

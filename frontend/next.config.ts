@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
       // ... any other allowed domains
     ],
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;

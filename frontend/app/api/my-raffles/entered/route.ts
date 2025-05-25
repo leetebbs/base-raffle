@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       client: publicClient
     });
 
-    const raffleCounter = await raffleContract.read.raffleCounter();
+    const raffleCounter = await raffleContract.read.raffleCounter([]);
     const totalRaffles = Number(raffleCounter);
 
     const enteredRafflesDetails: any[] = [];
@@ -69,50 +69,55 @@ export async function GET(request: Request) {
         // User has entered this raffle, fetch its details
         const raffleInfo = await raffleContract.read.getRaffleInfo([BigInt(i)]) as RaffleInfo;
 
-        let nftMetadata: any = {};
-        let imageUrl = '/placeholder.svg';
-        let nftName = `Raffle #${i}`;
-        let nftCollection = 'N/A';
+        // Skip if raffleInfo is undefined or does not have the expected structure
+        if (!raffleInfo || !raffleInfo[2]) continue;
 
-        try {
-           // Fetch NFT metadata
-           const nftContract = getContract({
-              address: raffleInfo[0] as `0x${string}`,
-              abi: ERC721ABI as any, // Casting to any for compatibility, ideally use 'as const'
-              client: publicClient
-           });
+        if (raffleInfo[2].toLowerCase() === userAddress.toLowerCase()) {
+          let nftMetadata: any = {};
+          let imageUrl = '/placeholder.svg';
+          let nftName = `Raffle #${i}`;
+          let nftCollection = 'N/A';
 
-           // Check if the NFT contract has a tokenURI function (basic check)
-           if (nftContract.read && (nftContract.read as any).tokenURI) {
-             const tokenURI = await (nftContract.read as any).tokenURI([raffleInfo[1]]);
-             if (tokenURI) {
-                 const metadataResponse = await fetch(ipfsToGatewayUrl(tokenURI as string));
-                 if (metadataResponse.ok) {
-                     nftMetadata = await metadataResponse.json();
-                     imageUrl = ipfsToGatewayUrl(nftMetadata.image);
-                     nftName = nftMetadata.name || nftName;
-                     nftCollection = nftMetadata.collection || nftCollection;
-                 }
+          try {
+             // Fetch NFT metadata
+             const nftContract = getContract({
+                address: raffleInfo[0] as `0x${string}`,
+                abi: ERC721ABI as any, // Casting to any for compatibility, ideally use 'as const'
+                client: publicClient
+             });
+
+             // Check if the NFT contract has a tokenURI function (basic check)
+             if (nftContract.read && (nftContract.read as any).tokenURI) {
+               const tokenURI = await (nftContract.read as any).tokenURI([raffleInfo[1]]);
+               if (tokenURI) {
+                   const metadataResponse = await fetch(ipfsToGatewayUrl(tokenURI as string));
+                   if (metadataResponse.ok) {
+                       nftMetadata = await metadataResponse.json();
+                       imageUrl = ipfsToGatewayUrl(nftMetadata.image);
+                       nftName = nftMetadata.name || nftName;
+                       nftCollection = nftMetadata.collection || nftCollection;
+                   }
+               }
              }
-           }
 
-        } catch (nftError) {
-           console.error(`Error fetching NFT metadata for raffle ${i}:`, nftError);
-           // Continue without NFT metadata if fetching fails
+          } catch (nftError) {
+             console.error(`Error fetching NFT metadata for raffle ${i}:`, nftError);
+             // Continue without NFT metadata if fetching fails
+          }
+
+          enteredRafflesDetails.push({
+            id: i.toString(),
+            name: nftName, // Use fetched NFT name or default
+            collection: nftCollection, // Use fetched NFT collection or default
+            image: imageUrl, // Use fetched image URL or default
+            userTicketsCount: Number(userTicketCount),
+            ticketPrice: raffleInfo[4].toString(),
+            // Add other necessary fields from raffleInfo if available
+            endTime: Number(raffleInfo[6]) * 1000,
+            totalTicketsSold: Number(raffleInfo[7]),
+            maxTickets: Number(raffleInfo[3]),
+          });
         }
-
-        enteredRafflesDetails.push({
-          id: i.toString(),
-          name: nftName, // Use fetched NFT name or default
-          collection: nftCollection, // Use fetched NFT collection or default
-          image: imageUrl, // Use fetched image URL or default
-          userTicketsCount: Number(userTicketCount),
-          ticketPrice: raffleInfo[4].toString(),
-          // Add other necessary fields from raffleInfo if available
-          endTime: Number(raffleInfo[6]) * 1000,
-          totalTicketsSold: Number(raffleInfo[7]),
-          maxTickets: Number(raffleInfo[3]),
-        });
       }
     }
 
