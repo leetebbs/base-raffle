@@ -609,4 +609,12 @@ contract Raffle is VRFConsumerBaseV2Plus, ReentrancyGuard, Pausable {
                block.timestamp <= raffle.endTime &&
                raffle.totalTicketsSold < raffle.ticketCount;
     }
+
+    function getKeyHash() external view returns (bytes32) {
+    return s_keyHash;
+}
+
+function getPlatformWallet() external view returns (address) {
+    return i_platformWallet;
+}
 }
