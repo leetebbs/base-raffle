@@ -30,24 +30,21 @@ function replacer(key: string, value: any) {
 }
 // ---------------------------------------------
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const id = url.pathname.split('/').pop();
+
   const client = createPublicClient({
     chain: baseSepolia,
     transport: http(),
   });
 
   try {
-    const awaitedParams = await params;
-    const raffleIdString = awaitedParams.id;
-
     const info = await client.readContract({
       address: RAFFLE_ADDRESS,
       abi: raffleAbi,
       functionName: "getRaffleInfo",
-      args: [BigInt(raffleIdString)],
+      args: [BigInt(id)],
     }) as Raffle; // Keep type assertion if you have the type defined
 
     // Fetch raffle participants
@@ -55,7 +52,7 @@ export async function GET(
       address: RAFFLE_ADDRESS,
       abi: raffleAbi, // Ensure raffleAbi includes the raffleParticipants definition
       functionName: "getRaffleParticipants",
-      args: [BigInt(raffleIdString)],
+      args: [BigInt(id)],
     }) as string[]; // Assuming it returns an array of addresses
 
     let nftName = "N/A";
@@ -100,7 +97,7 @@ export async function GET(
     // And ensure endTime is a valid format for the frontend new Date() conversion
     const serializedInfo = {
       ...info,
-      id: raffleIdString,
+      id: id,
       tokenId: info.tokenId.toString(),
       ticketCount: info.ticketCount.toString(),
       ticketPrice: info.ticketPrice.toString(),
