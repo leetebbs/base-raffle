@@ -33,6 +33,9 @@ function replacer(key: string, value: any) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const id = url.pathname.split('/').pop();
+  if (!id) {
+    return NextResponse.json({ error: "No raffle id provided in URL." }, { status: 400 });
+  }
 
   const client = createPublicClient({
     chain: baseSepolia,
