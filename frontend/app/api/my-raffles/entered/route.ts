@@ -12,22 +12,22 @@ const publicClient = createPublicClient({
   transport: http()
 });
 
-// Define RaffleInfo type based on your contract struct
-type RaffleInfo = readonly [
-  string, // nftAddress
-  bigint, // tokenId
-  string, // owner
-  bigint, // ticketCount (max tickets)
-  bigint, // ticketPrice
-  bigint, // startTime
-  bigint, // endTime
-  bigint, // totalTicketsSold
-  bigint, // totalPrize
-  bigint, // numberOfTicketsToBeSoldForRaffleToExecute
-  number, // state (enum uint8)
-  string, // winner
-  bigint  // requestId
-];
+// Define RaffleInfo type based on your contract struct (updated to reflect named properties)
+type RaffleInfo = {
+  nftAddress: string; // index 0
+  tokenId: bigint; // index 1
+  owner: string; // index 2
+  ticketCount: bigint; // index 3 (max tickets)
+  ticketPrice: bigint; // index 4
+  startTime: bigint; // index 5
+  endTime: bigint; // index 6
+  totalTicketsSold: bigint; // index 7
+  totalPrize: bigint; // index 8
+  numberOfTicketsToBeSoldForRaffleToExecute: bigint; // index 9
+  state: number; // index 10 (enum uint8)
+  winner: string; // index 11
+  requestId: bigint;  // index 12
+};
 
 // Helper function to convert IPFS URL to a gateway URL
 const ipfsToGatewayUrl = (ipfsUrl: string) => {
