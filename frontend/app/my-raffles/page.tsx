@@ -43,6 +43,7 @@ export default function MyRafflesPage() {
           return res.json();
         })
         .then(data => {
+          console.log("returned Raffles created" , data)
           setEnteredRaffles(data);
           setIsLoadingRaffles(false);
         })
@@ -98,7 +99,7 @@ export default function MyRafflesPage() {
           ) : enteredRaffles.length === 0 ? (
             <p className="text-slate-300">No raffles entered yet.</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
               {enteredRaffles.map(raffle => (
                  <Card key={raffle.id} className="overflow-hidden bg-slate-800/50 backdrop-blur-sm">
                    <Link href={`/raffle/${raffle.id}`} passHref>
@@ -141,7 +142,7 @@ export default function MyRafflesPage() {
           ) : createdRaffles.length === 0 ? (
              <p className="text-slate-300">No raffles created yet.</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
               {createdRaffles.map(raffle => (
                  <Card key={raffle.id} className="overflow-hidden bg-slate-800/50 backdrop-blur-sm">
                    <Link href={`/raffle/${raffle.id}`} passHref>

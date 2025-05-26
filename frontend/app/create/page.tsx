@@ -17,6 +17,7 @@ import { useAccount } from "wagmi"
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem'; // To convert ETH string to Wei BigInt
 import raffleAbi from '@/lib/raffleAbi.json'; // Import your contract ABI
+import { baseSepoliaContractAddress } from "@/config"
 
 // Minimal ABI for ERC721 approve function
 const erc721Abi = [
@@ -33,7 +34,7 @@ const erc721Abi = [
 ];
 
 // Deployed Raffle Contract Address on Base Sepolia
-const RAFFLE_CONTRACT_ADDRESS = '0x51FCeE5CA43fbBad5233AcDf9337B0F871DA9B15';
+const RAFFLE_CONTRACT_ADDRESS = baseSepoliaContractAddress;
 
 export default function CreateRafflePage() {
   const [selectedNft, setSelectedNft] = useState<number | null>(null)
@@ -162,7 +163,7 @@ export default function CreateRafflePage() {
 
         // Use the writeContract function provided by the wagmi hook
         await writeContract({
-            address: '0x51FCeE5CA43fbBad5233AcDf9337B0F871DA9B15', // Your deployed contract address
+            address: baseSepoliaContractAddress as `0x${string}`, // Your deployed contract address
             abi: raffleAbi, // Your contract ABI
             functionName: 'createRaffle',
             args: [
@@ -240,7 +241,7 @@ export default function CreateRafflePage() {
             address: nft.contract.address, // NFT contract address
             abi: erc721Abi, // ERC721 ABI with approve function
             functionName: 'approve',
-            args: [RAFFLE_CONTRACT_ADDRESS, BigInt(nft.tokenId)], // Approve the raffle contract for the specific token ID
+            args: [baseSepoliaContractAddress, BigInt(nft.tokenId)], // Approve the raffle contract for the specific token ID
         });
     } catch (error: any) {
          console.error("Error approving NFT:", error);

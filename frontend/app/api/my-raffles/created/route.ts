@@ -3,30 +3,31 @@ import { createPublicClient, http, getContract } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import RaffleABI from '@/lib/raffleAbi.json'; // Corrected ABI import
 import ERC721ABI from '@/lib/erc721Abi.json'; // Assuming you have a minimal ERC721 ABI with tokenURI here
+import { baseSepoliaContractAddress } from '../../../../config'
 
-const raffleContractAddress = '0x51FCeE5CA43fbBad5233AcDf9337B0F871DA9B15'; // Replace with your contract address
+const raffleContractAddress = baseSepoliaContractAddress; // Replace with your contract address
 
 const publicClient = createPublicClient({
   chain: baseSepolia,
   transport: http()
 });
 
-// Define RaffleInfo type based on your contract struct
-type RaffleInfo = readonly [
-  string, // nftAddress
-  bigint, // tokenId
-  string, // owner
-  bigint, // ticketCount (max tickets)
-  bigint, // ticketPrice
-  bigint, // startTime
-  bigint, // endTime
-  bigint, // totalTicketsSold
-  bigint, // totalPrize
-  bigint, // numberOfTicketsToBeSoldForRaffleToExecute
-  number, // state (enum uint8)
-  string, // winner
-  bigint  // requestId
-];
+// Define RaffleInfo type based on your contract struct (updated to reflect named properties)
+type RaffleInfo = {
+  nftAddress: string; // index 0
+  tokenId: bigint; // index 1
+  owner: string; // index 2
+  ticketCount: bigint; // index 3 (max tickets)
+  ticketPrice: bigint; // index 4
+  startTime: bigint; // index 5
+  endTime: bigint; // index 6
+  totalTicketsSold: bigint; // index 7
+  totalPrize: bigint; // index 8
+  numberOfTicketsToBeSoldForRaffleToExecute: bigint; // index 9
+  state: number; // index 10 (enum uint8)
+  winner: string; // index 11
+  requestId: bigint;  // index 12
+};
 
 // Mapping for RaffleState enum from the contract
 const RaffleStateMapping: { [key: number]: string } = {
@@ -59,67 +60,90 @@ export async function GET(request: Request) {
 
   try {
     const raffleContract = getContract({
-      address: raffleContractAddress,
+      address: raffleContractAddress as `0x${string}`,
       abi: RaffleABI as any, // Casting to any for compatibility, ideally use 'as const'
       client: publicClient
     });
 
     const raffleCounter = await raffleContract.read.raffleCounter([]);
     const totalRaffles = Number(raffleCounter);
+    console.log("Total raffles found:", totalRaffles);
 
     const createdRafflesDetails: any[] = [];
 
     // Iterate through all raffles to find those the user has created
     for (let i = 0; i < totalRaffles; i++) {
-      const raffleInfo = await raffleContract.read.getRaffleInfo([BigInt(i)]) as RaffleInfo;
+      console.log(`Checking raffle ${i} for creator ${userAddress}`);
+      let raffleInfo: RaffleInfo | undefined;
+      try {
+         raffleInfo = await raffleContract.read.getRaffleInfo([BigInt(i)]) as RaffleInfo;
+         console.log(`Raffle ${i} info:`, raffleInfo);
+      } catch (error) {
+         console.error(`Error fetching raffle info for raffle ${i}:`, error);
+         continue; // Skip this raffle if fetching info fails
+      }
 
-      if (raffleInfo && typeof raffleInfo[2] === "string" && raffleInfo[2].toLowerCase() === userAddress.toLowerCase()) {
-         const ticketsSold = Number(raffleInfo[7]); // totalTicketsSold is index 7
-         const maxTickets = Number(raffleInfo[3]); // ticketCount is index 3
-         const raffleState = RaffleStateMapping[raffleInfo[10]]; // state is index 10
+      // Skip if raffleInfo is undefined or if the owner field is missing/null
+      if (!raffleInfo || !raffleInfo.owner) {
+        console.log(`Skipping raffle ${i} due to missing or invalid owner info in raffleInfo`);
+        continue;
+      }
 
-         let nftMetadata: any = {};
-         let imageUrl = '/placeholder.svg';
-         let nftName = `Raffle #${i}`;
-         let nftCollection = 'N/A';
+      try {
+        if (raffleInfo.owner.toLowerCase() === userAddress.toLowerCase()) {
+          console.log(`Found created raffle ${i}`);
+          const ticketsSold = Number(raffleInfo.totalTicketsSold ?? BigInt(0));
+          const maxTickets = Number(raffleInfo.ticketCount ?? BigInt(0));
+          const raffleState = RaffleStateMapping[raffleInfo.state ?? 0];
+          console.log(`Raffle ${i} stats:`, { ticketsSold, maxTickets, raffleState });
 
-         try {
-            // Fetch NFT metadata
-            const nftContract = getContract({
-               address: raffleInfo[0] as `0x${string}`,
-               abi: ERC721ABI as any, // Casting to any for compatibility, ideally use 'as const'
-               client: publicClient
-            });
+          let nftMetadata: any = {};
+          let imageUrl = '/placeholder.svg';
+          let nftName = `Raffle #${i}`;
+          let nftCollection = 'N/A';
 
-            // Check if the NFT contract has a tokenURI function (basic check)
-           if (nftContract.read && (nftContract.read as any).tokenURI) {
-             const tokenURI = await (nftContract.read as any).tokenURI([raffleInfo[1]]);
-             if (tokenURI) {
-                 const metadataResponse = await fetch(ipfsToGatewayUrl(tokenURI as string));
-                 if (metadataResponse.ok) {
-                     nftMetadata = await metadataResponse.json();
-                     imageUrl = ipfsToGatewayUrl(nftMetadata.image);
-                     nftName = nftMetadata.name || nftName;
-                     nftCollection = nftMetadata.collection || nftCollection;
+          // Fetch NFT metadata only if nftAddress and tokenId are available
+          if (raffleInfo.nftAddress && raffleInfo.tokenId !== undefined && raffleInfo.tokenId !== null) {
+            try {
+               const nftContract = getContract({
+                  address: raffleInfo.nftAddress as `0x${string}`,
+                  abi: ERC721ABI as any,
+                  client: publicClient
+               });
+
+               if (nftContract.read && (nftContract.read as any).tokenURI) {
+                 const tokenURI = await (nftContract.read as any).tokenURI([raffleInfo.tokenId]);
+                 if (tokenURI) {
+                     const metadataResponse = await fetch(ipfsToGatewayUrl(tokenURI as string));
+                     if (metadataResponse.ok) {
+                         nftMetadata = await metadataResponse.json();
+                         imageUrl = ipfsToGatewayUrl(nftMetadata.image);
+                         nftName = nftMetadata.name || nftName;
+                         nftCollection = nftMetadata.collection || nftCollection;
+                     }
                  }
-             }
-           }
-         } catch (nftError) {
-            console.error(`Error fetching NFT metadata for raffle ${i}:`, nftError);
-            // Continue without NFT metadata if fetching fails
-         }
+               }
+            } catch (nftError) {
+               console.error(`Error fetching NFT metadata for raffle ${i}:`, nftError);
+            }
+          }
 
-        createdRafflesDetails.push({
-          id: i.toString(),
-          name: nftName, // Use fetched NFT name or default
-          collection: nftCollection, // Use fetched NFT collection or default
-          image: imageUrl, // Use fetched image URL or default
-          ticketsSold: ticketsSold,
-          maxTickets: maxTickets,
-          status: raffleState,
-          ticketPrice: raffleInfo[4].toString(), // ticketPrice is index 4
-          endTime: Number(raffleInfo[6]) * 1000, // endTime is index 6, convert to milliseconds
-        });
+          createdRafflesDetails.push({
+            id: i.toString(),
+            name: nftName,
+            collection: nftCollection,
+            image: imageUrl,
+            ticketsSold: ticketsSold,
+            maxTickets: maxTickets,
+            status: raffleState,
+            ticketPrice: (raffleInfo.ticketPrice ?? BigInt(0)).toString(),
+            endTime: Number(raffleInfo.endTime ?? BigInt(0)) * 1000
+          });
+        }
+      } catch (error) {
+        console.error(`Error processing raffle ${i}:`, error);
+        // Continue processing other raffles even if one fails
+        continue;
       }
     }
 

@@ -3,8 +3,9 @@ import { createPublicClient, http, getContract } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import RaffleABI from '@/lib/raffleAbi.json'; // Corrected ABI import
 import ERC721ABI from '@/lib/erc721Abi.json'; // Assuming you have a minimal ERC721 ABI with tokenURI here
+import { baseSepoliaContractAddress } from '../../../../config'
 
-const raffleContractAddress = '0x51FCeE5CA43fbBad5233AcDf9337B0F871DA9B15'; // Replace with your contract address
+const raffleContractAddress = baseSepoliaContractAddress; // Replace with your contract address
 
 const publicClient = createPublicClient({
   chain: baseSepolia,
@@ -51,72 +52,80 @@ export async function GET(request: Request) {
 
   try {
     const raffleContract = getContract({
-      address: raffleContractAddress,
+      address: raffleContractAddress as `0x${string}`,
       abi: RaffleABI as any, // Casting to any for compatibility, ideally use 'as const'
       client: publicClient
     });
 
     const raffleCounter = await raffleContract.read.raffleCounter([]);
     const totalRaffles = Number(raffleCounter);
+    console.log("Total raffles found:", totalRaffles);
 
     const enteredRafflesDetails: any[] = [];
 
     // Iterate through all raffles to find those the user has entered
     for (let i = 0; i < totalRaffles; i++) {
+      console.log(`Checking raffle ${i} for user ${userAddress}`);
       const userTicketCount = await raffleContract.read.getUserTicketCount([BigInt(i), userAddress as `0x${string}`]);
-
+      console.log(`User ticket count for raffle ${i}:`, Number(userTicketCount));
+      
       if (Number(userTicketCount) > 0) {
         // User has entered this raffle, fetch its details
         const raffleInfo = await raffleContract.read.getRaffleInfo([BigInt(i)]) as RaffleInfo;
+        console.log(`Raffle ${i} info:`, raffleInfo);
 
-        // Skip if raffleInfo is undefined or does not have the expected structure
-        if (!raffleInfo || !raffleInfo[2]) continue;
+        // Skip if raffleInfo is undefined or if the owner field is missing/null
+        if (!raffleInfo || !raffleInfo.owner) {
+          console.log(`Skipping raffle ${i} due to missing or invalid owner info in raffleInfo`);
+          continue;
+        }
 
-        if (raffleInfo[2].toLowerCase() === userAddress.toLowerCase()) {
+        try {
           let nftMetadata: any = {};
           let imageUrl = '/placeholder.svg';
           let nftName = `Raffle #${i}`;
           let nftCollection = 'N/A';
 
-          try {
-             // Fetch NFT metadata
-             const nftContract = getContract({
-                address: raffleInfo[0] as `0x${string}`,
-                abi: ERC721ABI as any, // Casting to any for compatibility, ideally use 'as const'
-                client: publicClient
-             });
+          // Fetch NFT metadata only if nftAddress and tokenId are available
+          if (raffleInfo.nftAddress && raffleInfo.tokenId !== undefined && raffleInfo.tokenId !== null) {
+            try {
+               const nftContract = getContract({
+                  address: raffleInfo.nftAddress as `0x${string}`,
+                  abi: ERC721ABI as any,
+                  client: publicClient
+               });
 
-             // Check if the NFT contract has a tokenURI function (basic check)
-             if (nftContract.read && (nftContract.read as any).tokenURI) {
-               const tokenURI = await (nftContract.read as any).tokenURI([raffleInfo[1]]);
-               if (tokenURI) {
-                   const metadataResponse = await fetch(ipfsToGatewayUrl(tokenURI as string));
-                   if (metadataResponse.ok) {
-                       nftMetadata = await metadataResponse.json();
-                       imageUrl = ipfsToGatewayUrl(nftMetadata.image);
-                       nftName = nftMetadata.name || nftName;
-                       nftCollection = nftMetadata.collection || nftCollection;
-                   }
+               if (nftContract.read && (nftContract.read as any).tokenURI) {
+                 const tokenURI = await (nftContract.read as any).tokenURI([raffleInfo.tokenId]);
+                 if (tokenURI) {
+                     const metadataResponse = await fetch(ipfsToGatewayUrl(tokenURI as string));
+                     if (metadataResponse.ok) {
+                         nftMetadata = await metadataResponse.json();
+                         imageUrl = ipfsToGatewayUrl(nftMetadata.image);
+                         nftName = nftMetadata.name || nftName;
+                         nftCollection = nftMetadata.collection || nftCollection;
+                     }
+                 }
                }
-             }
-
-          } catch (nftError) {
-             console.error(`Error fetching NFT metadata for raffle ${i}:`, nftError);
-             // Continue without NFT metadata if fetching fails
+            } catch (nftError) {
+               console.error(`Error fetching NFT metadata for raffle ${i}:`, nftError);
+            }
           }
 
           enteredRafflesDetails.push({
             id: i.toString(),
-            name: nftName, // Use fetched NFT name or default
-            collection: nftCollection, // Use fetched NFT collection or default
-            image: imageUrl, // Use fetched image URL or default
+            name: nftName,
+            collection: nftCollection,
+            image: imageUrl,
             userTicketsCount: Number(userTicketCount),
-            ticketPrice: raffleInfo[4].toString(),
-            // Add other necessary fields from raffleInfo if available
-            endTime: Number(raffleInfo[6]) * 1000,
-            totalTicketsSold: Number(raffleInfo[7]),
-            maxTickets: Number(raffleInfo[3]),
+            ticketPrice: (raffleInfo.ticketPrice ?? BigInt(0)).toString(),
+            endTime: Number(raffleInfo.endTime ?? BigInt(0)) * 1000,
+            totalTicketsSold: Number(raffleInfo.totalTicketsSold ?? BigInt(0)),
+            maxTickets: Number(raffleInfo.ticketCount ?? BigInt(0)),
           });
+        } catch (error) {
+          console.error(`Error processing raffle ${i}:`, error);
+          continue;
         }
       }
     }

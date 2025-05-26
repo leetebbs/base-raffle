@@ -37,6 +37,7 @@ contract Raffle is VRFConsumerBaseV2Plus, ReentrancyGuard, Pausable {
     error Raffle__RaffleNotPendingWinner();
     error Raffle__RaffleCannotBeCancelled();
     error Raffle__NoTicketsToRefund();
+    error Raffle__WinnerPayoutFailed();
 
     // Raffle states
     enum RaffleState {
@@ -70,6 +71,7 @@ contract Raffle is VRFConsumerBaseV2Plus, ReentrancyGuard, Pausable {
 
     // Constants
     uint256 private constant PLATFORM_FEE_PERCENTAGE = 10;
+    uint256 private constant WINNER_FEE_PERCENTAGE = 10;
     uint256 private constant MAX_TICKET_PURCHASES_PER_BATCH = 100;
     uint256 public constant MIN_RAFFLE_DURATION = 1 hours;
     uint256 public constant MAX_RAFFLE_DURATION = 30 days;
@@ -245,7 +247,7 @@ contract Raffle is VRFConsumerBaseV2Plus, ReentrancyGuard, Pausable {
      */
     function purchaseTickets(uint256 raffleId, uint256 numberOfTickets) external payable nonReentrant whenNotPaused {
         RaffleInfo storage raffle = raffles[raffleId];
-        
+        if  (numberOfTickets == 0) revert Raffle__NoTicketsPurchased();
         if (raffle.state != RaffleState.OPEN) revert Raffle__RaffleNotActive();
         if (block.timestamp > raffle.endTime) revert Raffle__RaffleHasEnded();
         if (raffle.totalTicketsSold + numberOfTickets > raffle.ticketCount) revert Raffle__NotEnoughTickets();
@@ -413,23 +415,28 @@ contract Raffle is VRFConsumerBaseV2Plus, ReentrancyGuard, Pausable {
     function _processWinnerPayouts(uint256 raffleId, address winner) private {
         RaffleInfo storage raffle = raffles[raffleId];
         
-        // Calculate fees and prize
-        uint256 fee = (raffle.totalPrize * PLATFORM_FEE_PERCENTAGE) / 100;
-        uint256 payout = raffle.totalPrize - fee;
+        // Calculate payouts
+        uint256 platformFee = (raffle.totalPrize * PLATFORM_FEE_PERCENTAGE) / 100;
+        uint256 winnerPrize = (raffle.totalPrize * WINNER_FEE_PERCENTAGE) / 100; // 10% for winner
+        uint256 creatorPayout = raffle.totalPrize - platformFee - winnerPrize; // 80% for creator
 
-        // Transfer prize to winner (following checks-effects-interactions pattern)
-        (bool success1, ) = winner.call{value: payout}("");
-        if (!success1) revert Raffle__PayoutFailed();
+        // Transfer prize to winner
+        (bool success1, ) = winner.call{value: winnerPrize}("");
+        if (!success1) revert Raffle__WinnerPayoutFailed();
 
         // Transfer fee to platform wallet
-        (bool success2, ) = i_platformWallet.call{value: fee}("");
+        (bool success2, ) = i_platformWallet.call{value: platformFee}("");
         if (!success2) revert Raffle__FeeSendFailed();
+
+        // Transfer creator payout
+        (bool success3, ) = raffle.owner.call{value: creatorPayout}("");
+        if (!success3) revert Raffle__PayoutFailed();
 
         // Transfer NFT to winner
         _transferNFTToWinner(raffle.nftAddress, raffle.tokenId, winner);
 
-        emit WinnerSelected(raffleId, winner, payout);
-        emit PlatformFeeReceived(raffleId, fee);
+        emit WinnerSelected(raffleId, winner, winnerPrize);
+        emit PlatformFeeReceived(raffleId, platformFee);
     }
     
     /**

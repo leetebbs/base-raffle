@@ -1,8 +1,9 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import raffleAbi from '@/lib/raffleAbi.json'; // Assuming your ABI is here
+import { baseSepoliaContractAddress } from '@/config';
 
-const RAFFLE_ADDRESS = "0x51FCeE5CA43fbBad5233AcDf9337B0F871DA9B15"; // Your raffle contract address
+const RAFFLE_ADDRESS = baseSepoliaContractAddress; // Your raffle contract address
 
 export function usePurchaseTickets() {
   // useWriteContract prepares and sends the transaction
@@ -25,7 +26,7 @@ export function usePurchaseTickets() {
     console.log("Calculated total cost (Wei):", totalCost);
 
     writeContract({
-      address: RAFFLE_ADDRESS,
+      address: RAFFLE_ADDRESS as `0x${string}`,
       abi: raffleAbi as any, // Cast to any for now, proper type comes from wagmi/core
       functionName: 'purchaseTickets',
       args: [raffleId, BigInt(numberOfTickets)],

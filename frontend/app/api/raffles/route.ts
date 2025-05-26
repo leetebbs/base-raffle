@@ -3,8 +3,9 @@ import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 import raffleAbi from "@/lib/raffleAbi.json";
 import erc721Abi from "@/lib/erc721Abi.json";
+import { baseSepoliaContractAddress } from "../../../config"
 
-const RAFFLE_ADDRESS = "0x51FCeE5CA43fbBad5233AcDf9337B0F871DA9B15";
+const RAFFLE_ADDRESS = baseSepoliaContractAddress;
 
 type Raffle = {
   state: number;
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   // Fetch the total number of raffles
   const raffleCount = await client.readContract({
-    address: RAFFLE_ADDRESS,
+    address: baseSepoliaContractAddress as `0x${string}`,
     abi: raffleAbi,
     functionName: "raffleCounter",
   });
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
   const raffles = [];
   for (let i = 0; i < Number(raffleCount); i++) {
     const raffle = await client.readContract({
-      address: RAFFLE_ADDRESS,
+      address: baseSepoliaContractAddress as `0x${string}`,
       abi: raffleAbi,
       functionName: "getRaffleInfo",
       args: [BigInt(i)],

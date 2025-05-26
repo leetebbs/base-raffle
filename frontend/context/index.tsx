@@ -18,7 +18,7 @@ if (!projectId) {
 const metadata = {
   name: 'Base Raffle',
   description: 'Base Raffle Application',
-  url: 'https://baseraffle.com', // Update this to your domain
+  url: 'https://base-raffle-inky.vercel.app', // Updated to match deployment URL
   icons: ['https://avatars.githubusercontent.com/u/179229932'] // Update this to your icon
 }
 

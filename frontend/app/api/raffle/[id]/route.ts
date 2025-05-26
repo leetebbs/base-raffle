@@ -4,8 +4,9 @@ import { baseSepolia } from "viem/chains";
 import raffleAbi from "@/lib/raffleAbi.json";
 import fetchImageUrl from "@/components/fetchImageUrl";
 import erc721Abi from "@/lib/erc721Abi.json";
+import { baseSepoliaContractAddress } from "@/config";
 
-const RAFFLE_ADDRESS = "0x51FCeE5CA43fbBad5233AcDf9337B0F871DA9B15";
+const RAFFLE_ADDRESS = baseSepoliaContractAddress;
 
 type Raffle = { // Assuming you have this type defined or similar
   state: number;
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
 
   try {
     const info = await client.readContract({
-      address: RAFFLE_ADDRESS,
+      address: RAFFLE_ADDRESS as `0x${string}`,
       abi: raffleAbi,
       functionName: "getRaffleInfo",
       args: [BigInt(id)],
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
 
     // Fetch raffle participants
     const participants = await client.readContract({
-      address: RAFFLE_ADDRESS,
+      address: RAFFLE_ADDRESS as `0x${string}`,
       abi: raffleAbi, // Ensure raffleAbi includes the raffleParticipants definition
       functionName: "getRaffleParticipants",
       args: [BigInt(id)],

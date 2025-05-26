@@ -137,7 +137,7 @@ export function Footer() {
         <div className="mt-8 border-t border-slate-800 pt-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-sm text-slate-500">&copy; {new Date().getFullYear()} NFTRaffle. All rights reserved.</p>
-            <p className="text-sm text-slate-500">Powered by Ethereum. Built with ❤️ for the NFT community.</p>
+            <p className="text-sm text-slate-500">Powered by Base. Built with ❤️ for the NFT community.</p>
           </div>
         </div>
       </div>
