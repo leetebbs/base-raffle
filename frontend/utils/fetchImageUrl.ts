@@ -1,6 +1,6 @@
 import { createPublicClient, http } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { erc721ABI } from 'viem';
+import { erc721Abi } from 'viem';
 
 export async function fetchImageUrl(nftAddress: string, tokenId: string): Promise<string> {
   try {
@@ -13,7 +13,7 @@ export async function fetchImageUrl(nftAddress: string, tokenId: string): Promis
     // Get the tokenURI from the NFT contract
     const tokenURI = await client.readContract({
       address: nftAddress as `0x${string}`,
-      abi: erc721ABI,
+      abi: erc721Abi,
       functionName: 'tokenURI',
       args: [BigInt(tokenId)],
     });
