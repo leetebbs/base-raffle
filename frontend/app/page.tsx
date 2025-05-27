@@ -69,7 +69,7 @@ export default function LandingPage() {
                 View all <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-6">
               {activeRaffles.map((raffle) => (
                 <Card key={raffle.id} className="overflow-hidden bg-slate-800/50 backdrop-blur-sm">
                   <div className="relative aspect-square">
@@ -113,7 +113,7 @@ export default function LandingPage() {
                   </CardContent>
                   <CardFooter className="border-t border-slate-700 p-4">
                     <Link href={`/raffle/${raffle.id}`} className="w-full">
-                      <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600">Enter Raffle</Button>
+                      <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 cursor-pointer">Enter Raffle</Button>
                     </Link>
                   </CardFooter>
                 </Card>

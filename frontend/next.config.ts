@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   images: {
     domains: [
       'ipfs.io',
+      'ipfs.infura.io',
+      'gateway.pinata.cloud',
       'nft-cdn.alchemy.com',
       // ... any other allowed domains
     ],

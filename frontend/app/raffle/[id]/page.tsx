@@ -28,6 +28,7 @@ export default function RaffleDetailPage(props: { params: Promise<{ id: string }
   const params = use(props.params);
   const [ticketQuantity, setTicketQuantity] = useState(1)
   const [raffle, setRaffle] = useState<any>(null)
+  const [isRaffleCompleted, setIsRaffleCompleted] = useState(false)
 
   const { isConnected } = useAccount();
   const { purchaseTickets, isLoading, isSuccess, error } = usePurchaseTickets();
@@ -78,6 +79,8 @@ export default function RaffleDetailPage(props: { params: Promise<{ id: string }
             creator: data.creator || "N/A", // Add placeholder for creator if not available
             recentEntries: data.participants || [], // Map participants to recentEntries (or add a new field) - adjust as needed
           });
+          // Check if raffle is completed
+          setIsRaffleCompleted(data.state === 'COMPLETED');
         })
         .catch(console.error);
     }
@@ -262,6 +265,14 @@ export default function RaffleDetailPage(props: { params: Promise<{ id: string }
                           <WalletConnect />
                         </div>
                       </div>
+                    </div>
+                  ) : raffle.ticketsSold >= raffle.maxTickets ? (
+                    <div className="rounded-lg bg-slate-700/50 p-4 text-center">
+                      <p className="text-slate-300">This raffle is sold out!</p>
+                    </div>
+                  ) : isRaffleCompleted ? (
+                    <div className="rounded-lg bg-slate-700/50 p-4 text-center">
+                      <p className="text-slate-300">This raffle has ended and winners have been selected</p>
                     </div>
                   ) : (
                     <div className="space-y-4">

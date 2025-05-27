@@ -137,7 +137,8 @@ export async function GET(request: Request) {
             maxTickets: maxTickets,
             status: raffleState,
             ticketPrice: (raffleInfo.ticketPrice ?? BigInt(0)).toString(),
-            endTime: Number(raffleInfo.endTime ?? BigInt(0)) * 1000
+            endTime: Number(raffleInfo.endTime ?? BigInt(0)) * 1000,
+            totalPrize: (raffleInfo.totalPrize ?? BigInt(0)).toString()
           });
         }
       } catch (error) {

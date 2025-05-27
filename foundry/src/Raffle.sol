@@ -30,7 +30,7 @@ contract Raffle is VRFConsumerBaseV2Plus, ReentrancyGuard, Pausable {
     error Raffle__RequestNotFound();
     error Raffle__WinnerAlreadySelected();
     error Raffle__RequestNotFulfilled();
-    error Raffle__InvalidRaffleDuration();
+    error Raffle__InvalidRaffleDuration(); 
     error Raffle__MinTicketsExceedTotalTickets();
     error Raffle__TooManyTicketsInOneTransaction();
     error Raffle__RaffleNotInOpenState();
@@ -624,4 +624,5 @@ contract Raffle is VRFConsumerBaseV2Plus, ReentrancyGuard, Pausable {
 function getPlatformWallet() external view returns (address) {
     return i_platformWallet;
 }
+
 }

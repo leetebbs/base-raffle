@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { formatEther } from "viem";
 import Image from "next/image";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 // Helper function to convert IPFS URL to a gateway URL
@@ -165,6 +165,17 @@ export default function MyRafflesPage() {
                          <span>Status:</span>
                          <span className="font-medium text-white">{raffle.status || "N/A"}</span>
                        </div>
+                       {raffle.status === "COMPLETED" && (
+                         <div className="flex items-center justify-between text-slate-300 text-sm mt-1">
+                           <span>Creator payout:</span>
+                           <span className="font-medium text-white">
+                             {(() => {
+                               console.log("Raffle totalPrize:", raffle.totalPrize);
+                               return raffle.totalPrize ? `${formatEther(BigInt(raffle.totalPrize) * BigInt(80) / BigInt(100))} ETH` : "N/A";
+                             })()}
+                           </span>
+                         </div>
+                       )}
                      </CardContent>
                    </Link>
                  </Card>

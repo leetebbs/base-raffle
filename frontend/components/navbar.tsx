@@ -47,6 +47,9 @@ export function Navbar() {
           <Link href="/raffles" className="text-sm font-medium text-slate-200 transition-colors hover:text-white">
             Browse
           </Link>
+          <Link href="/winners" className="text-sm font-medium text-slate-200 transition-colors hover:text-white">
+            Winnners
+          </Link>
           <Link href="/my-raffles" className="text-sm font-medium text-slate-200 transition-colors hover:text-white">
             My Raffles
           </Link>
