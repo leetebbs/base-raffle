@@ -4,14 +4,30 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Wallet, Clock, ArrowRight, ExternalLink } from "lucide-react"
+import { Wallet, Clock, ArrowRight, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react"
 import { CountdownTimer } from "@/components/countdown-timer"
 import { WalletConnect } from "@/components/wallet-connect"
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import useEmblaCarousel from 'embla-carousel-react'
+import { SparklesText } from "@/components/ui/sparkles-text"
+
+
 
 export default function LandingPage() {
 
   const [activeRaffles, setActiveRaffles] = useState<any[]>([]);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: 'start',
+    loop: true,
+    slidesToScroll: 1,
+    breakpoints: {
+      '(min-width: 768px)': { slidesToScroll: 2 },
+      '(min-width: 1024px)': { slidesToScroll: 4 },
+    },
+  });
+
+  const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
 
   useEffect(() => {
     fetch("/api/raffles")
@@ -32,8 +48,8 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-[url('/placeholder.svg?height=1080&width=1920')] bg-cover bg-center opacity-20"></div>
           </div>
           <div className="container relative z-10 mx-auto px-4 text-center">
-            <h1 className="mb-6 bg-gradient-to-r from-purple-400 via-pink-500 to-amber-500 bg-clip-text text-4xl font-extrabold text-transparent leading-tight md:text-6xl lg:text-7xl">
-              Raffle Your NFTs. Win Rare Digital Assets.
+            <h1 className="mb-6">
+            <SparklesText text="Raffle Your NFTs. Win Rare Digital Assets." className="bg-gradient-to-r from-purple-400 via-pink-500 to-amber-500 bg-clip-text text-4xl font-extrabold text-transparent leading-tight md:text-6xl lg:text-7xl"/>
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-slate-300 md:text-xl">
               Connect your wallet, create or enter raffles using verified NFTs. Transparent, secure, and fun.
@@ -69,55 +85,75 @@ export default function LandingPage() {
                 View all <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-6">
-              {activeRaffles.map((raffle) => (
-                <Card key={raffle.id} className="overflow-hidden bg-slate-800/50 backdrop-blur-sm">
-                  <div className="relative aspect-square">
-                    <Image
-                      src={raffle.image || "/placeholder.svg"}
-                      alt={raffle.nftAddress}
-                      fill
-                      className="object-cover p-5"
-                    />
-                    <Badge className="absolute right-3 top-3 bg-purple-600">
-                      {Number(raffle.ticketPrice) / 1e18} ETH
-                    </Badge>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="mb-2 text-xl font-bold text-white w-full truncate">
-                      <Link href={`https://sepolia.basescan.org/address/${raffle.nftAddress}`} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                        <span className="truncate">{raffle.nftAddress}</span>
-                        <ExternalLink className="ml-1 h-4 w-4 text-slate-400 hover:text-white" />
-                      </Link>
-                    </h3>
-                    <div className="mb-3 flex items-center text-slate-300">
-                      <Clock className="mr-2 h-4 w-4" />
-                      <CountdownTimer endTime={new Date(Number(raffle.endTime) * 1000)} />
+            <div className="relative">
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex gap-4">
+                  {activeRaffles.map((raffle) => (
+                    <div key={raffle.id} className="flex-[0_0_100%] min-w-0 md:flex-[0_0_50%] lg:flex-[0_0_33%]">
+                      <Card className="overflow-hidden bg-slate-800/50 backdrop-blur-sm h-full">
+                        <div className="relative aspect-square">
+                          <Image
+                            src={raffle.image || "/placeholder.svg"}
+                            alt={raffle.nftAddress}
+                            fill
+                            className="object-cover p-5"
+                          />
+                          <Badge className="absolute right-3 top-3 bg-purple-600">
+                            {Number(raffle.ticketPrice) / 1e18} ETH
+                          </Badge>
+                        </div>
+                        <CardContent className="p-4">
+                          <h3 className="mb-2 text-xl font-bold text-white w-full truncate">
+                            <Link href={`https://sepolia.basescan.org/address/${raffle.nftAddress}`} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                              <span className="truncate">{raffle.nftAddress}</span>
+                              <ExternalLink className="ml-1 h-4 w-4 text-slate-400 hover:text-white" />
+                            </Link>
+                          </h3>
+                          <div className="mb-3 flex items-center text-slate-300">
+                            <Clock className="mr-2 h-4 w-4" />
+                            <CountdownTimer endTime={new Date(Number(raffle.endTime) * 1000)} />
+                          </div>
+                          <div className="mb-4">
+                            <div className="mb-1 flex justify-between text-sm text-slate-400">
+                              <span>Tickets sold</span>
+                              <span>
+                                {Number(raffle.totalTicketsSold)} / {Number(raffle.ticketCount)}
+                              </span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-slate-700">
+                              <div
+                                className="h-full bg-gradient-to-r from-purple-600 to-pink-600"
+                                style={{
+                                  width: `${(Number(raffle.totalTicketsSold) / Number(raffle.ticketCount)) * 100}%`,
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="border-t border-slate-700 p-4">
+                          <Link href={`/raffle/${raffle.id}`} className="w-full">
+                            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 cursor-pointer">Enter Raffle</Button>
+                          </Link>
+                        </CardFooter>
+                      </Card>
                     </div>
-                    <div className="mb-4">
-                      <div className="mb-1 flex justify-between text-sm text-slate-400">
-                        <span>Tickets sold</span>
-                        <span>
-                          {Number(raffle.totalTicketsSold)} / {Number(raffle.ticketCount)}
-                        </span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-700">
-                        <div
-                          className="h-full bg-gradient-to-r from-purple-600 to-pink-600"
-                          style={{
-                            width: `${(Number(raffle.totalTicketsSold) / Number(raffle.ticketCount)) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t border-slate-700 p-4">
-                    <Link href={`/raffle/${raffle.id}`} className="w-full">
-                      <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 cursor-pointer">Enter Raffle</Button>
-                    </Link>
-                  </CardFooter>
-                </Card>
-              ))}
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={scrollPrev}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 rounded-full bg-slate-800/80 p-2 text-white hover:bg-slate-700/80 focus:outline-none"
+                aria-label="Previous slide"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                onClick={scrollNext}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 rounded-full bg-slate-800/80 p-2 text-white hover:bg-slate-700/80 focus:outline-none"
+                aria-label="Next slide"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
             </div>
           </div>
         </section>
