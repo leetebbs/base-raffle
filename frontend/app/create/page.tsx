@@ -14,8 +14,8 @@ import { WalletConnect } from "@/components/wallet-connect"
 import { ArrowLeft, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAccount } from "wagmi"
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem'; // To convert ETH string to Wei BigInt
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { parseEther, isAddressEqual } from 'viem'; // To convert ETH string to Wei BigInt
 import raffleAbi from '@/lib/raffleAbi.json'; // Import your contract ABI
 import { baseSepoliaContractAddress } from "@/config"
 
@@ -33,6 +33,17 @@ const erc721Abi = [
   }
 ];
 
+// Minimal ABI for ERC721 getApproved function
+const erc721GetApprovedAbi = [
+  {
+    "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+    "name": "getApproved",
+    "outputs": [{"internalType": "address", "name": "operator", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 // Deployed Raffle Contract Address on Base Sepolia
 const RAFFLE_CONTRACT_ADDRESS = baseSepoliaContractAddress;
 
@@ -44,6 +55,7 @@ export default function CreateRafflePage() {
   const [fetchedNfts, setFetchedNfts] = useState<any[] | null>(null)
   const [minTicketsRequired, setMinTicketsRequired] = useState("10")
   const [isNftApproved, setIsNftApproved] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
 
   const { isConnected, address, chain } = useAccount()
 
@@ -113,6 +125,9 @@ export default function CreateRafflePage() {
       }
     };
 
+    // Clear previous approval status when NFTs are refetched
+    setIsNftApproved(false);
+
     fetchNfts();
   }, [isConnected, address, chain]); // Dependencies: re-run when connection status or address changes
 
@@ -151,14 +166,14 @@ export default function CreateRafflePage() {
         const raffleTicketPrice = parseEther(ticketPrice); // Convert ETH string to Wei BigInt
         const raffleLengthInSeconds = BigInt(Number(duration) * 24 * 60 * 60); // Convert days to seconds, then to BigInt
         const requiredMinTickets = BigInt(minTicketsRequired); // minTicketsRequired corresponds to minTicketsRequired in contract
-
         console.log("Arguments being sent to writeContract:", [
           nftAddress,
           tokenId,
           raffleTicketCount,
           raffleTicketPrice,
           raffleLengthInSeconds,
-          requiredMinTickets
+          requiredMinTickets,
+          isFeatured,
         ]);
 
         // Use the writeContract function provided by the wagmi hook
@@ -172,7 +187,8 @@ export default function CreateRafflePage() {
                 raffleTicketCount,
                 raffleTicketPrice,
                 raffleLengthInSeconds,
-                requiredMinTickets
+                requiredMinTickets,
+                isFeatured,
             ],
         });
 
@@ -200,17 +216,41 @@ export default function CreateRafflePage() {
     hash: approvalHash,
   });
 
-  // Handle approval success
+  // Read hook to check NFT approval status
+  const selectedNftAddress = selectedNft !== null && fetchedNfts?.[selectedNft]?.contract?.address ? fetchedNfts[selectedNft].contract.address : undefined;
+  const selectedNftTokenId = selectedNft !== null && fetchedNfts?.[selectedNft]?.tokenId ? BigInt(fetchedNfts[selectedNft].tokenId) : undefined;
+
+  const { data: approvedAddress, isFetching: isApprovalStatusFetching, error: approvalStatusError } = useReadContract({
+    address: selectedNftAddress as `0x${string}` | undefined, // NFT contract address
+    abi: erc721GetApprovedAbi, // ABI for getApproved
+    functionName: 'getApproved',
+    args: selectedNftTokenId !== undefined ? [selectedNftTokenId] : undefined, // Token ID of the selected NFT
+    query: {
+      enabled: selectedNftAddress !== undefined && selectedNftTokenId !== undefined, // Only enabled when NFT is selected and data available
+      select: (data) => data, // Use the raw address data
+    }
+  });
+
+  // Effect to update isNftApproved state based on the read hook result
   useEffect(() => {
-    if (isApprovalConfirmed) {
-      setIsNftApproved(true);
-      alert("NFT approved successfully!");
+    if (selectedNft !== null && selectedNftAddress && approvedAddress !== undefined && approvedAddress !== null) {
+      // Check if the approved address is the raffle contract address
+      // Ensure approvedAddress is a string before using isAddressEqual
+      if (typeof approvedAddress === 'string') {
+        const isApproved = isAddressEqual(approvedAddress as `0x${string}`, baseSepoliaContractAddress as `0x${string}`);
+        setIsNftApproved(isApproved);
+        console.log(`NFT ${selectedNftTokenId} on contract ${selectedNftAddress} approval status: ${isApproved ? 'Approved' : 'Not Approved'}`);
+      } else {
+          // Handle the case where approvedAddress is not a string (e.g., {}, null, undefined)
+          // This might happen during loading or if there's an error.
+          setIsNftApproved(false); // Assume not approved if status is unclear
+          console.log(`NFT ${selectedNftTokenId} on contract ${selectedNftAddress} approval status: Unknown or not an address.`);
+      }
+    } else if (selectedNft === null || selectedNftAddress === undefined) {
+        // Reset approval status when no NFT is selected or NFT data is missing
+        setIsNftApproved(false);
     }
-    if (approvalError || approvalConfirmError) {
-      const error = approvalError ?? approvalConfirmError;
-      alert(`NFT Approval failed: ${error?.message || error}`);
-    }
-  }, [isApprovalConfirmed, approvalError, approvalConfirmError]);
+  }, [selectedNft, selectedNftAddress, approvedAddress]);
 
   // Provide feedback to the user for Raffle Creation
   useEffect(() => {
@@ -440,6 +480,30 @@ export default function CreateRafflePage() {
                     </div>
                   </div>
 
+                  {/* Featured Toggle/Checkbox */}
+                  <div className="mb-8 space-y-2 flex items-center">
+                    <Input
+                      id="isFeatured"
+                      type="checkbox"
+                      checked={isFeatured}
+                      onChange={(e) => setIsFeatured(e.target.checked)}
+                      className="mr-2 h-5 w-5"
+                    />
+                    <Label htmlFor="isFeatured" className="text-white flex items-center">
+                      Feature this Raffle
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="ml-2 h-4 w-4 text-slate-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Feature your raffle on the homepage for increased visibility (additional fee applies).</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                  </div>
+
                   <Button
                     type="submit"
                     disabled={selectedNft === null || !writeContract || isWritePending || isConfirming || !isNftApproved}
@@ -506,6 +570,10 @@ export default function CreateRafflePage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">Minimum Tickets:</span>
                         <span className="font-medium text-white">{minTicketsRequired}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Featured:</span>
+                        <span className="font-medium text-white">{isFeatured ? 'Yes' : 'No'}</span>
                       </div>
                     </div>
 

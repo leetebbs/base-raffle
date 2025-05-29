@@ -237,7 +237,9 @@ export default function DocsPage() {
               <div className="rounded-lg bg-purple-900/30 border border-purple-700/50 p-6">
                 <p className="text-lg text-slate-300">
                   We charge a small fee of <span className="font-bold text-purple-400">10%</span> only when a raffle is
-                  successfully completed and a winner is chosen. If a raffle is canceled, you pay nothing extra.
+                  successfully completed and a winner is chosen. <br />
+                  If you choose to feature your raffle, a <span className="font-bold text-purple-400">20%</span> fee will be taken from the total ticket sales.<br />
+                  If a raffle is cancelled, you pay nothing extra.
                 </p>
               </div>
             </CardContent>
