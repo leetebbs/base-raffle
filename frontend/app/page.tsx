@@ -22,7 +22,7 @@ export default function LandingPage() {
     slidesToScroll: 1,
     breakpoints: {
       '(min-width: 768px)': { slidesToScroll: 2 },
-      '(min-width: 1024px)': { slidesToScroll: 4 },
+      '(min-width: 1024px)': { slidesToScroll: 3 },
     },
   });
 
