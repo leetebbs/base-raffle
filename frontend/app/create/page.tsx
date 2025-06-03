@@ -67,41 +67,6 @@ export default function CreateRafflePage() {
           console.log("Connected chain ID:", chain.id);
           console.log("Connected chain name:", chain.name);
 
-          // TODO: Implement NFT fetching using Alchemy SDK or a Next.js API route
-          // Example using a hypothetical fetch function (replace with actual Alchemy SDK call or API fetch):
-          // const response = await fetch(`/api/nfts?address=${address}&network=eth-mainnet&pageSize=10`);
-          // const data = await response.json();
-          // if (data && data.nfts) {
-          //   setFetchedNfts(data.nfts);
-          // } else {
-          //   setFetchedNfts([]);
-          // }
-
-          // TODO: Replace with your actual Alchemy SDK initialization
-          // Make sure to configure the network and API key correctly
-          // import { Alchemy, Network } from "alchemy-sdk";
-          // const config = {
-          //   apiKey: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY, // Replace with your env variable name
-          //   network: chain.id, // Alchemy SDK can often use chain ID directly
-          //   // Or map chain.id to Alchemy's network string if needed:
-          //   // network: chain.id === 84532 ? "base-sepolia" : "", // Example mapping for Base Sepolia
-          // };
-          // const alchemy = new Alchemy(config);
-
-          // // Replace with the actual SDK call, using the connected chain's ID or a mapped network name
-          // // The exact method might vary based on your Alchemy SDK version and configuration.
-          // const nfts = await alchemy.nft.getNftsForOwner(address, {
-          //   chain: chain.id, // Use the connected chain's ID
-          //   pageSize: 10,
-          // });
-
-          // // Assuming the response structure includes a 'ownedNfts' array
-          // if (nfts && nfts.ownedNfts) {
-          //   setFetchedNfts(nfts.ownedNfts);
-          // } else {
-          //   setFetchedNfts([]); // Set to empty array if no NFTs or unexpected response
-          // }
-
           // Call the new API route to fetch NFTs
           const response = await fetch(`/api/nfts?address=${address}&chainId=${chain.id}`);
           

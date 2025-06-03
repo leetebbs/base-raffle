@@ -51,6 +51,12 @@ export async function GET(request: Request) {
       args: [BigInt(id)],
     }) as Raffle; // Keep type assertion if you have the type defined
 
+    // Check if the raffle is canceled (state 5)
+    console.log("Raffle info state:", info.state);
+    if (info.state === 3) {
+      return NextResponse.json({ error: "Raffle has been canceled." }, { status: 404 });
+    }
+
     // Fetch raffle participants
     const participants = await client.readContract({
       address: RAFFLE_ADDRESS as `0x${string}`,

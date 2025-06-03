@@ -30,6 +30,9 @@ export default function MyRafflesPage() {
   const [errorFetchingCreated, setErrorFetchingCreated] = useState<string | null>(null);
 
   useEffect(() => {
+    const now = Date.now();
+    console.log("useEffect triggered", { isConnected, address, now, nowISO: new Date(now).toISOString() });
+    // Log endTime for all entered and created raffles after fetch
     if (isConnected && address) {
       setIsLoadingRaffles(true);
       setErrorFetching(null);
@@ -43,7 +46,10 @@ export default function MyRafflesPage() {
           return res.json();
         })
         .then(data => {
-          console.log("returned Raffles created" , data)
+          console.log("returned Raffles entered", data);
+          if (Array.isArray(data)) {
+            data.forEach(r => console.log("Entered raffle endTime:", r.id, r.endTime));
+          }
           setEnteredRaffles(data);
           setIsLoadingRaffles(false);
         })
@@ -65,6 +71,9 @@ export default function MyRafflesPage() {
           return res.json();
         })
         .then(data => {
+          if (Array.isArray(data)) {
+            data.forEach(r => console.log("Created raffle endTime:", r.id, r.endTime));
+          }
           setCreatedRaffles(data);
           setIsLoadingCreatedRaffles(false);
         })
@@ -163,7 +172,16 @@ export default function MyRafflesPage() {
                        </div>
                         <div className="flex items-center justify-between text-slate-300 text-sm mt-1">
                          <span>Status:</span>
-                         <span className="font-medium text-white">{raffle.status || "N/A"}</span>
+                         <span className="font-medium text-white">
+                           {(() => {
+                             const now = Date.now();
+                             const endTime = raffle.endTime ; // assuming endTime is in seconds
+                             if (now > endTime) {
+                               return "ENDED";
+                             }
+                             return raffle.status || "N/A";
+                           })()}
+                         </span>
                        </div>
                        {raffle.status === "COMPLETED" && (
                          <div className="flex items-center justify-between text-slate-300 text-sm mt-1">
@@ -187,4 +205,4 @@ export default function MyRafflesPage() {
       </div>
     </div>
   );
-} 
+}

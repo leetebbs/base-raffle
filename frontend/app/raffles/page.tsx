@@ -259,7 +259,20 @@ export default function BrowseRafflesPage() {
       );
     }
 
-    if (!raffles || raffles.length === 0) {
+    // Filter out raffles whose endTime has passed
+    const now = Date.now();
+    const visibleRaffles = raffles.filter((raffle: FormattedRaffle) => {
+      // If endTime is a Date object, getTime(), else try to parse
+      let endTimeMs = 0;
+      if (raffle.endTime instanceof Date) {
+        endTimeMs = raffle.endTime.getTime();
+      } else if (typeof raffle.endTime === 'string' || typeof raffle.endTime === 'number') {
+        endTimeMs = new Date(raffle.endTime).getTime();
+      }
+      return endTimeMs > now;
+    });
+
+    if (!visibleRaffles || visibleRaffles.length === 0) {
       return (
         <div className="text-center py-12">
           <h3 className="text-xl font-semibold text-white mb-2">No raffles found</h3>
@@ -275,7 +288,7 @@ export default function BrowseRafflesPage() {
     return (
       <>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {raffles.map((raffle: FormattedRaffle) => (
+          {visibleRaffles.map((raffle: FormattedRaffle) => (
             <Card
               key={raffle.id}
               className="group overflow-hidden bg-slate-800/50 backdrop-blur-sm transition-all hover:scale-105 hover:shadow-xl"
